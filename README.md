@@ -127,11 +127,11 @@ Every conversation automatically follows this flow:
 ```
 Chat Starts
     ↓
-[nyantify_start] → Timer starts
+track({action: "start"}) → Timer starts
     ↓
 AI works while you do other things
     ↓
-[nyantify_end] → Check duration & IDE focus
+track({action: "end"}) → Check duration & IDE focus
     ↓
     ├─ Duration > 60s & Left IDE → 📱 Notify
     └─ Otherwise → 🔕 Silent

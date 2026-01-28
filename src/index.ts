@@ -66,103 +66,92 @@ function formatDuration(seconds: number): string {
   return `${mins}min${secs}s`;
 }
 
-// Define tools with clear action-oriented descriptions
-const START_TASK_TOOL: Tool = {
-  name: 'nyantify_start',
-  description: `STEP 1 OF 2: Call this FIRST before doing anything else.
+// Define tools with mandatory calling requirements
+const TRACK_TOOL: Tool = {
+  name: 'track',
+  description: `[MANDATORY] CALL AT START AND END OF EVERY CONVERSATION.
 
-ACTION: Start tracking this conversation session.
-WHEN: Right now, before your first response.
+USAGE:
+Start: track({action: "start", task_id: "chat-001", task_name: "description"})
+End: track({action: "end", task_id: "chat-001"})
 
-Parameters:
-- task_id: Unique ID (e.g., "chat-2024-01-28-001")
-- task_name: Brief description of this conversation topic
+⚠️ CRITICAL RULES:
+1. MUST call track({action: "start", ...}) BEFORE any other action
+2. MUST call track({action: "end", ...}) AFTER your final response
+3. If you skip this, user won't get notifications when tasks complete
 
-DO THIS NOW, THEN REPLY TO USER.`,
+WHAT IT DOES:
+Tracks conversation duration. Sends iPhone notification if:
+- Conversation lasts >60 seconds AND
+- User has left their IDE
+
+EXAMPLE:
+track({action: "start", task_id: "chat-2024-001", task_name: "Refactoring auth"})
+... do work ...
+track({action: "end", task_id: "chat-2024-001"})`,
   inputSchema: {
     type: 'object',
     properties: {
+      action: {
+        type: 'string',
+        enum: ['start', 'end'],
+        description: '"start" at conversation begin, "end" at conversation finish',
+      },
       task_id: {
         type: 'string',
-        description: 'Unique conversation ID',
+        description: 'Unique conversation ID (format: chat-YYYYMMDD-NNN)',
       },
       task_name: {
         type: 'string',
-        description: 'What this conversation is about',
+        description: 'Brief description of this conversation (required for start)',
       },
     },
-    required: ['task_id', 'task_name'],
+    required: ['action', 'task_id'],
   },
 };
 
-const END_TASK_TOOL: Tool = {
-  name: 'nyantify_end',
-  description: `STEP 2 OF 2: Call this LAST after completing your response.
+const DIRECT_NOTIFY_TOOL: Tool = {
+  name: 'direct_notify',
+  description: `[WHEN NEEDED] Send immediate notification to user's iPhone.
 
-ACTION: End tracking this conversation session.
-WHEN: After your final reply, before finishing.
+USE ONLY WHEN:
+- Urgent situation requiring immediate user attention
+- User must make a time-sensitive decision
+- Critical alert that cannot wait for task completion
 
-Parameters:
-- task_id: Same ID from nyantify_start
-- force_notify: (optional) Set true to always notify
+⚠️ REQUIRED: Must warn user before calling this tool.
+Example: "I need to send a notification to your phone about [reason]"
 
-DO THIS LAST, THEN YOU'RE DONE.`,
-  inputSchema: {
-    type: 'object',
-    properties: {
-      task_id: {
-        type: 'string',
-        description: 'Same ID from nyantify_start',
-      },
-      force_notify: {
-        type: 'boolean',
-        description: 'Force notification (default: false)',
-        default: false,
-      },
-    },
-    required: ['task_id'],
-  },
-};
+⚠️ FORMAT: Title MUST be "Nyantify"
+⚠️ CONTENT: Must be clear, specific, and actionable
+⚠️ NEVER use for routine updates or minor status changes
 
-const NOTIFY_TOOL: Tool = {
-  name: 'nyantify_notify',
-  description: `Send immediate notification to user's iPhone via Bark.
+GOOD EXAMPLES:
+- "Production database connection failed. Immediate action required."
+- "Security vulnerability detected in dependencies. Need decision on fix."
+- "Deployment failed on staging. Rollback or retry?"
 
-CURRENT LANGUAGE SETTING: ${LANGUAGE}
-- Use this language for the notification body
-
-WHEN TO USE:
-- Urgent situations requiring immediate user attention
-- When user needs to make a decision
-- Important alerts that can't wait
-
-【IMPORTANT】Before calling notify:
-1. Tell user: "${LANGUAGE === 'zh' ? '我需要发送通知到您的手机' : LANGUAGE === 'ja' ? 'お知らせを送信します' : 'I need to send a notification to your phone'}"
-2. Explain what the notification is about
-3. Then call notify
-
-RULES:
-- Title MUST be "Nyantify"
-- Body must be clear and specific (in ${LANGUAGE})
-- Never use vague messages
-
-GOOD (${LANGUAGE}): "${LANGUAGE === 'zh' ? '代码审查：是否在UserService中添加Redis缓存？查询耗时2.3秒' : LANGUAGE === 'ja' ? 'コードレビュー：UserServiceにRedisキャッシュを追加しますか？クエリ実行時間2.3秒' : 'Code review: Add Redis cache to UserService? Query takes 2.3s'}"
-BAD: "Check this" or "Done"`,
+BAD EXAMPLES:
+- "Done" (too vague)
+- "Check this" (unclear what to check)
+- "Task finished" (use track instead)`,
   inputSchema: {
     type: 'object',
     properties: {
       title: {
         type: 'string',
-        description: 'MUST be "Nyantify"',
+        description: 'MUST be exactly: "Nyantify"',
+        enum: ['Nyantify'],
       },
       body: {
         type: 'string',
-        description: `Clear message in ${LANGUAGE} explaining what user needs to know`,
+        description: 'Clear, urgent message explaining what requires user attention',
       },
       level: {
         type: 'string',
         enum: ['active', 'timeSensitive', 'passive'],
-        description: 'timeSensitive for urgent matters (shows during Focus mode)',
+        default: 'timeSensitive',
+        description: 'timeSensitive = shows even in Focus mode (default for urgency)',
       },
     },
     required: ['title', 'body'],
@@ -173,7 +162,7 @@ BAD: "Check this" or "Done"`,
 const server = new Server(
   {
     name: 'nyantify-mcp-server',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -185,7 +174,7 @@ const server = new Server(
 // Register tool list handler
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: [START_TASK_TOOL, END_TASK_TOOL, NOTIFY_TOOL],
+    tools: [TRACK_TOOL, DIRECT_NOTIFY_TOOL],
   };
 });
 
@@ -195,81 +184,75 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'nyantify_start': {
-        const { task_id, task_name } = args as { task_id: string; task_name: string };
-        taskTracker.startTask(task_id, task_name);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Task "${task_name}" (${task_id}) started tracking.`,
-            },
-          ],
+      case 'track': {
+        const { action, task_id, task_name } = args as { 
+          action: 'start' | 'end'; 
+          task_id: string; 
+          task_name?: string;
         };
-      }
 
-      case 'nyantify_end': {
-        const { task_id, force_notify = false } = args as { task_id: string; force_notify?: boolean };
-        const result = taskTracker.endTask(task_id, force_notify);
-        
-        if (!result) {
+        if (action === 'start') {
+          if (!task_name) {
+            return {
+              content: [{ type: 'text', text: 'Error: task_name is required for action=start' }],
+              isError: true,
+            };
+          }
+          taskTracker.startTask(task_id, task_name);
           return {
-            content: [
-              {
-                type: 'text',
-                text: `Task ${task_id} not found.`,
-              },
-            ],
-            isError: true,
+            content: [{ type: 'text', text: `✓ Tracking started: ${task_name}` }],
           };
         }
 
-        const durationSeconds = Math.round(result.duration / 1000);
-        
-        // Check if we should send notification
-        if (result.shouldNotify) {
-          const isIDEFocused = await ideDetector.isIDEFocused();
+        if (action === 'end') {
+          const result = taskTracker.endTask(task_id);
           
-          if (!isIDEFocused || force_notify) {
-            const frontApp = await ideDetector.getFrontmostApplicationName();
-            const formattedDuration = formatDuration(durationSeconds);
-            
-            // Use hardcoded title based on language setting
-            const titleText = NOTIFICATION_TITLES[LANGUAGE] || NOTIFICATION_TITLES['en'];
-            
-            const barkOptions: BarkOptions = {
-              title: `Nyantify · ${titleText} · ${formattedDuration}`,
-              body: result.name,
-              subtitle: PROJECT_NAME,
-              group: 'nyantify',
-              level: 'timeSensitive',
-            };
-            
-            await barkClient.send(barkOptions);
-            
+          if (!result) {
             return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Task "${result.name}" completed in ${formattedDuration}. Notification sent (you were using ${frontApp}).`,
-                },
-              ],
+              content: [{ type: 'text', text: `Task ${task_id} not found.` }],
+              isError: true,
             };
           }
+
+          const durationSeconds = Math.round(result.duration / 1000);
+          
+          if (result.shouldNotify) {
+            const isIDEFocused = await ideDetector.isIDEFocused();
+            
+            if (!isIDEFocused) {
+              const frontApp = await ideDetector.getFrontmostApplicationName();
+              const formattedDuration = formatDuration(durationSeconds);
+              const titleText = NOTIFICATION_TITLES[LANGUAGE] || NOTIFICATION_TITLES['en'];
+              
+              const barkOptions: BarkOptions = {
+                title: `Nyantify · ${titleText} · ${formattedDuration}`,
+                body: result.name,
+                subtitle: PROJECT_NAME,
+                group: 'nyantify',
+                level: 'timeSensitive',
+              };
+              
+              await barkClient.send(barkOptions);
+              
+              return {
+                content: [{ type: 'text', text: `✓ Task completed in ${formattedDuration}. Notification sent (you were using ${frontApp}).` }],
+              };
+            }
+          }
+
+          const formattedDuration = formatDuration(durationSeconds);
+          return {
+            content: [{ type: 'text', text: `✓ Task completed in ${formattedDuration}. No notification needed (you're focused on IDE).` }],
+          };
         }
 
-        const formattedDuration = formatDuration(durationSeconds);
         return {
-          content: [
-            {
-              type: 'text',
-              text: `Task "${result.name}" completed in ${formattedDuration}. No notification needed (you're focused on IDE).`,
-            },
-          ],
+          content: [{ type: 'text', text: `Unknown action: ${action}` }],
+          isError: true,
         };
       }
 
-      case 'nyantify_notify': {
+      case 'direct_notify': {
         const { title, body, level } = args as {
           title: string;
           body: string;
@@ -279,42 +262,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const barkOptions: BarkOptions = {
           title,
           body,
-          group: 'nyantify-notifications',
+          group: 'nyantify',
           level: level || 'timeSensitive',
         };
 
         await barkClient.send(barkOptions);
 
         return {
-          content: [
-            {
-              type: 'text',
-              text: `Notification sent: "${title}"`,
-            },
-          ],
+          content: [{ type: 'text', text: `✓ Notification sent: "${title}"` }],
         };
       }
 
       default:
         return {
-          content: [
-            {
-              type: 'text',
-              text: `Unknown tool: ${name}`,
-            },
-          ],
+          content: [{ type: 'text', text: `Unknown tool: ${name}` }],
           isError: true,
         };
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
-      content: [
-        {
-          type: 'text',
-          text: `Error: ${errorMessage}`,
-        },
-      ],
+      content: [{ type: 'text', text: `Error: ${errorMessage}` }],
       isError: true,
     };
   }
