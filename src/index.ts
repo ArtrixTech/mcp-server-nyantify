@@ -30,35 +30,33 @@ const ideConfig: IDEDetectorConfig = {
 const ideDetector = new IDEDetector(ideConfig);
 const taskTracker = new TaskTracker(MIN_DURATION_SECONDS);
 
-// Define tools with comprehensive descriptions
+// Define tools with simplified descriptions
 const START_TASK_TOOL: Tool = {
   name: 'start_task',
-  description: `【MANDATORY】Start tracking a new task. Call this BEFORE every potentially long-running operation (build, test, deploy, etc.).
+  description: `Start tracking this conversation session. Call this ONCE at the beginning of every chat.
 
-REQUIRED USAGE:
-- Must call start_task before any operation that could take >10 seconds
-- Must pair with end_task when operation completes
-- Use descriptive task_name so user understands what's happening
+SIMPLE USAGE:
+- Call start_task when the conversation starts
+- Call end_task when the conversation ends
+- That's it!
 
-EXAMPLE FLOW:
-1. start_task({task_id: "build-001", task_name: "Building project"})
-2. Execute the actual operation
-3. end_task({task_id: "build-001"})
+The system will automatically:
+- Track how long the conversation takes
+- Send a notification if it exceeds 60 seconds and user left IDE
+- Stay silent if user is still focused on IDE
 
-WHY THIS MATTERS:
-- Lets user know a task is in progress
-- Enables intelligent notifications for long tasks when user leaves IDE
-- Prevents user from thinking the operation froze`,
+EXAMPLE:
+start_task({task_id: "chat-2024-001", task_name: "Code review session"})`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Unique identifier for this task (use format: operation-type-timestamp)',
+        description: 'Unique identifier for this conversation (e.g., "chat-timestamp")',
       },
       task_name: {
         type: 'string',
-        description: 'Human-readable description of what this task does',
+        description: 'Description of what this conversation is about',
       },
     },
     required: ['task_id', 'task_name'],
@@ -67,18 +65,19 @@ WHY THIS MATTERS:
 
 const END_TASK_TOOL: Tool = {
   name: 'end_task',
-  description: `【MANDATORY】End a tracked task. Call this AFTER the operation completes. Must pair with start_task.
+  description: `End this conversation session. Call this ONCE at the end of every chat.
 
-NOTIFICATION LOGIC:
-- If duration >60s AND user not focused on IDE: Sends notification
-- If duration <60s OR user in IDE: No notification (silent completion)
-- Use force_notify=true to override and always notify
+SIMPLE USAGE:
+- Call end_task when you're done with the conversation
+- Must use the same task_id from start_task
+- That's it!
+
+NOTIFICATION LOGIC (automatic):
+- If conversation >60s AND user left IDE → sends notification
+- Otherwise → silent completion
 
 EXAMPLE:
-end_task({task_id: "build-001"})  // Uses automatic logic
-end_task({task_id: "build-001", force_notify: true})  // Always notify
-
-NOTE: Notification only sends if task took >60s (configurable) and user left IDE.`,
+end_task({task_id: "chat-2024-001"})`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -98,26 +97,25 @@ NOTE: Notification only sends if task took >60s (configurable) and user left IDE
 
 const NOTIFY_TOOL: Tool = {
   name: 'notify',
-  description: `Send immediate notification via Bark to user's iPhone. Use for urgent situations requiring user attention.
+  description: `Send immediate notification to user's iPhone via Bark.
 
-【CRITICAL】USER CONFIRMATION REQUIRED:
-Before calling notify, you MUST warn the user. Example:
-"I need to send a notification to your phone. Please confirm..."
-"I'm now sending the notification to your iPhone."
+WHEN TO USE:
+- Urgent situations requiring immediate user attention
+- When user needs to make a decision
+- Important alerts that can't wait
 
-NOTIFY USAGE RULES:
-1. Title MUST be "Nyantify" (fixed)
-2. Body must be clear and specific about what user needs to do
-3. Only use for urgent decisions or important alerts
-4. Never send vague messages like "look at this" or "check this"
+【IMPORTANT】Before calling notify:
+1. Tell user: "I need to send a notification to your phone"
+2. Explain what the notification is about
+3. Then call notify
 
-GOOD EXAMPLES:
-- "Code review needed: Should I add Redis cache to UserService? Query takes 2.3s"
-- "Tests completed: 3 failures in auth module, need your decision on fix approach"
+RULES:
+- Title MUST be "Nyantify"
+- Body must be clear and specific
+- Never use vague messages
 
-BAD EXAMPLES:
-- "Done" (too vague)
-- "Check this" (unclear action)`,
+GOOD: "Code review needed: Add Redis cache to UserService? Query takes 2.3s"
+BAD: "Check this" or "Done"`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -127,28 +125,12 @@ BAD EXAMPLES:
       },
       body: {
         type: 'string',
-        description: 'Clear, specific message explaining what user needs to do',
-      },
-      subtitle: {
-        type: 'string',
-        description: 'Additional context (optional)',
-      },
-      sound: {
-        type: 'string',
-        description: 'Sound name (optional)',
-      },
-      group: {
-        type: 'string',
-        description: 'Notification group (optional)',
+        description: 'Clear message explaining what user needs to know or do',
       },
       level: {
         type: 'string',
         enum: ['active', 'timeSensitive', 'passive'],
-        description: 'timeSensitive recommended for urgent matters (shows during Focus mode)',
-      },
-      url: {
-        type: 'string',
-        description: 'URL to open when notification is clicked (optional)',
+        description: 'timeSensitive for urgent matters (shows during Focus mode)',
       },
     },
     required: ['title', 'body'],
