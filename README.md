@@ -1,78 +1,104 @@
-# 🔔 MCP Server Nyantify
+<div align="center">
 
-> **Smart iOS notifications for AI coding agents**
+# 🔮 Nyantify
 
-[![npm version](https://img.shields.io/npm/v/mcp-server-nyantify.svg)](https://www.npmjs.com/package/mcp-server-nyantify)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+**干活交给AI，干完了Nyantify来叫你。**
 
-An intelligent [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that sends iOS push notifications via [Bark](https://bark.day.app/) only when you need them—during long conversations or when immediate attention is required.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![MCP](https://img.shields.io/badge/MCP-Protocol-orange)](https://modelcontextprotocol.io/)
 
-## ✨ Features
+*智能通知中间件，让AI学会礼貌地打扰你*
 
-- **🎯 Smart Timing** - Only notifies for conversations running longer than 60 seconds (configurable)
-- **💻 IDE Aware** - Automatically detects when you're coding and skips notifications
-- **🔔 Emergency Alerts** - Direct notification API for urgent situations requiring immediate decisions
-- **🚀 Zero Config** - Works out of the box with sensible defaults
-- **📝 Simple API** - Just call `start_task` at the beginning and `end_task` at the end of each chat
+</div>
 
-## 📋 Prerequisites
+---
 
-- **macOS** (required for IDE focus detection via AppleScript)
-- **Node.js 18+**
-- **[Bark iOS App](https://apps.apple.com/app/bark-custom-notifications/id1403753865)** with a push key
+## 🎯 解决什么问题
 
-## 🚀 Quick Start
+当你让AI助手执行长时间任务时（代码重构、测试运行、构建部署），常常遇到这些困境：
 
-### 1. Get Your Bark Key
+- ❌ **盯着屏幕干等** - 不知道AI什么时候做完
+- ❌ **切换去做别的** - 忘记回来看结果，任务烂尾
+- ❌ **频繁检查进度** - 打断自己的工作流
+- ❌ **被无关通知轰炸** - 在IDE里专注编码时也收到提醒
 
-1. Install [Bark](https://apps.apple.com/app/bark-custom-notifications/id1403753865) from the App Store
-2. Open the app and copy your unique key
-3. Keep it handy for configuration
+**Nyantify = AI干活的"门铃系统"**
 
-### 2. Install
+只有在你**真正需要知道**的时候，才会轻轻推你一下。
+
+---
+
+## ✨ 核心特性
+
+### 1. 智能免打扰
+```
+你在IDE里写代码 → 完全静默
+你离开IDE刷手机 →  gentle reminder
+```
+自动检测当前焦点应用，专注时不打扰。
+
+### 2. 时间感知
+```
+短任务 (<60秒) → 静默完成
+长任务 (>60秒) → 推送到手机
+```
+只有值得通知的任务才会推送到你的iPhone。
+
+### 3. 项目感知
+```
+通知副标题: mcp-server-nyantify
+一目了然知道是哪个项目的消息
+```
+
+### 4. 多语言支持
+- 🇨🇳 中文
+- 🇺🇸 English  
+- 🇯🇵 日本語
+
+---
+
+## 🚀 快速开始
+
+### 前置条件
+- macOS (IDE焦点检测依赖AppleScript)
+- Node.js 18+
+- [Bark iOS App](https://apps.apple.com/app/bark-custom-notifications/id1403753865)
+
+### 安装
 
 ```bash
-# Clone the repository
 git clone https://github.com/ArtrixTech/mcp-server-nyantify.git
 cd mcp-server-nyantify
-
-# Install dependencies
 npm install
-
-# Build the project
 npm run build
 ```
 
-### 3. Configure
-
-Add to your OpenCode or Claude Desktop MCP configuration:
+### 配置
 
 **OpenCode** (`~/.config/opencode/opencode.json`):
 ```json
 {
-  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "nyantify": {
       "type": "local",
-      "command": ["node", "/path/to/mcp-server-nyantify/dist/index.js"],
+      "command": ["node", "/path/to/dist/index.js"],
       "environment": {
         "BARK_KEY": "your_bark_key_here",
         "LANGUAGE": "zh"
-      },
-      "enabled": true
+      }
     }
   }
 }
 ```
 
-**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+**Claude Desktop**:
 ```json
 {
   "mcpServers": {
     "nyantify": {
       "command": "node",
-      "args": ["/path/to/mcp-server-nyantify/dist/index.js"],
+      "args": ["/path/to/dist/index.js"],
       "env": {
         "BARK_KEY": "your_bark_key_here"
       }
@@ -81,119 +107,97 @@ Add to your OpenCode or Claude Desktop MCP configuration:
 }
 ```
 
-### 4. Done! 🎉
-
-Restart your AI assistant and the MCP server will automatically:
-- Track conversation duration
-- Send notifications only when needed
-- Respect your focus time while coding
-
-## 🔧 Configuration Options
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `BARK_KEY` | ✅ Yes | - | Your Bark push key from the iOS app |
-| `BARK_BASE_URL` | ❌ No | `https://api.day.app` | Bark server URL |
-| `MIN_DURATION_SECONDS` | ❌ No | `60` | Minimum duration to trigger notification |
-| `IDE_BUNDLE_IDS` | ❌ No | See list below | Custom IDE identifiers to detect |
-| `LANGUAGE` | ❌ No | `en` | Notification language: `en`, `zh`, or `ja` |
-
-### Default IDE Detection
-
-The server automatically detects these IDEs:
-- **VS Code** - `com.microsoft.VSCode`
-- **Cursor** - `com.todesktop.20230321yt3tgw5`
-- **IntelliJ IDEA** - `com.jetbrains.intellij`
-- **WebStorm** - `com.jetbrains.WebStorm`
-- **Xcode** - `com.apple.dt.Xcode`
-- **And more...**
-
-## 📖 How It Works
-
-### Automatic Task Tracking
-
-Each conversation is automatically tracked:
-
-1. **Start** → `start_task` is called when the chat begins
-2. **Track** → System monitors if you leave your IDE
-3. **End** → `end_task` is called when the chat ends
-4. **Notify** → If the conversation lasted >60s and you left your IDE, you get a notification
-
-### Direct Notifications
-
-For urgent matters that can't wait:
-
-```javascript
-// The AI will ask for your confirmation first
-await notify({
-  title: "Nyantify",
-  body: "Critical: Production database connection failed. Action required.",
-  level: "timeSensitive"
-});
-```
-
-## 🛠️ Available Tools
-
-### `start_task`
-Begin tracking a conversation session.
-
-**Parameters:**
-- `task_id` (string): Unique identifier for this conversation
-- `task_name` (string): Description of what the conversation is about
-
-### `end_task`
-End the conversation tracking.
-
-**Parameters:**
-- `task_id` (string): Same ID from `start_task`
-- `force_notify` (boolean, optional): Override and always send notification
-
-### `notify`
-Send an immediate notification (requires user confirmation).
-
-**Parameters:**
-- `title` (string): Must be `"Nyantify"`
-- `body` (string): Clear, specific message
-- `level` (string, optional): `"timeSensitive"` for urgent matters
-
-## 🧪 Testing
-
-See [TEST_GUIDE.md](./TEST_GUIDE.md) for comprehensive testing instructions covering:
-- ✅ Direct notifications
-- ✅ Short task handling (no notification)
-- ✅ Long task + away from IDE (notification sent)
-- ✅ Long task + in IDE (no notification)
-- ✅ Force notifications
-- ✅ Concurrent task handling
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'feat: add some amazing feature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-Please read [AGENTS.md](./AGENTS.md) for detailed development guidelines.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Bark](https://bark.day.app/) - The awesome iOS push notification app
-- [Model Context Protocol](https://modelcontextprotocol.io/) - The protocol enabling this integration
-- [OpenCode](https://opencode.ai/) - The AI coding agent framework
-
-## 📬 Support
-
-- 🐛 [Bug Reports](https://github.com/ArtrixTech/mcp-server-nyantify/issues)
-- 💡 [Feature Requests](https://github.com/ArtrixTech/mcp-server-nyantify/issues)
-- 📧 [Discussions](https://github.com/ArtrixTech/mcp-server-nyantify/discussions)
+重启AI助手，完成！
 
 ---
 
-Made with ❤️ for developers who don't want to be interrupted while coding
+## 🎮 工作原理
+
+```
+┌─────────────┐    STEP 1    ┌─────────────┐
+│  对话开始    │─────────────▶│ nyantify_start│
+└─────────────┘              └─────────────┘
+       │                            │
+       │                            ▼
+       │                    ┌─────────────┐
+       │                    │  开始计时    │
+       │                    └─────────────┘
+       │                            │
+       │         用户工作...        │
+       │                            │
+       │                            ▼
+       │                    ┌─────────────┐
+       │                    │ 检测IDE焦点 │
+       │                    └─────────────┘
+       │                            │
+       │    STEP 2    ┌─────────────┐
+       │◀─────────────│ nyantify_end │
+       │              └─────────────┘
+       │                     │
+       ▼                     ▼
+┌─────────────┐    ┌─────────────┐
+│  对话结束    │    │  时长>60s?  │
+└─────────────┘    └─────────────┘
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+      用户离开IDE                用户仍在IDE
+              │                       │
+              ▼                       ▼
+    ┌─────────────────┐      ┌─────────────────┐
+    │ 📱 推送通知到手机  │      │ 🔕 静默完成      │
+    │ Nyantify·任务完成 │      │ 不打扰专注工作   │
+    └─────────────────┘      └─────────────────┘
+```
+
+**通知示例**:
+```
+标题: Nyantify · 任务完成 · 2min30s
+副标题: mcp-server-nyantify
+内容: 代码重构完成，请确认是否提交
+```
+
+---
+
+## 🔧 配置选项
+
+| 变量 | 必需 | 默认值 | 说明 |
+|------|------|--------|------|
+| `BARK_KEY` | ✅ | - | Bark推送密钥 |
+| `LANGUAGE` | ❌ | `en` | 通知语言: `zh`/`en`/`ja` |
+| `MIN_DURATION_SECONDS` | ❌ | `60` | 触发通知的最小时长(秒) |
+| `IDE_BUNDLE_IDS` | ❌ | 内置列表 | 自定义IDE检测标识 |
+
+---
+
+## 🛠️ 技术栈
+
+- **TypeScript** - 类型安全的Node.js开发
+- **MCP Protocol** - Model Context Protocol标准
+- **AppleScript** - macOS IDE焦点检测
+- **Bark** - iOS APNs推送服务
+
+---
+
+## 🤝 贡献
+
+欢迎PR！请遵循:
+1. Fork仓库
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启Pull Request
+
+---
+
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](./LICENSE)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for developers who value their focus time**
+
+</div>
