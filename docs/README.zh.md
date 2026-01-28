@@ -49,38 +49,33 @@
 一目了然知道是哪个项目的消息
 ```
 
-### 4. 多语言支持
-- 🇨🇳 中文
-- 🇺🇸 English  
-- 🇯🇵 日本語
+### 4. 多语言支持 🇺🇳
+`en` `zh` `ja` `de` `fr` `es` `ru` `ko` `pt` `it` `ar` `hi` `vi` `th`
 
 ---
 
 ## 🚀 快速开始
 
 ### 前置条件
-- macOS (IDE焦点检测依赖AppleScript)
-- Node.js 18+
-- [Bark iOS App](https://apps.apple.com/app/bark-custom-notifications/id1403753865)
+- **macOS** / **Windows** / **Linux**
+- **Node.js 18+**
+- **[Bark iOS App](https://github.com/Finb/Bark)** - 免费开源推送通知应用
 
-### 安装
+### 1. 获取 Bark Key
 
-```bash
-git clone https://github.com/ArtrixTech/mcp-server-nyantify.git
-cd mcp-server-nyantify
-npm install
-npm run build
-```
+1. 在 iPhone 上安装 [Bark](https://apps.apple.com/app/bark-custom-notifications/id1403753865)
+2. 打开应用，复制你的唯一密钥
+3. 这个密钥将用于 MCP 配置
 
-### 配置
+### 2. 配置 AI 助手
 
-**OpenCode** (`~/.config/opencode/opencode.json`):
+**OpenCode** (`~/.config/opencode/opencode.json`)：
 ```json
 {
   "mcp": {
     "nyantify": {
       "type": "local",
-      "command": ["node", "/path/to/dist/index.js"],
+      "command": ["npx", "-y", "mcp-server-nyantify"],
       "environment": {
         "BARK_KEY": "your_bark_key_here",
         "LANGUAGE": "zh"
@@ -90,13 +85,13 @@ npm run build
 }
 ```
 
-**Claude Desktop**:
+**Claude Desktop**：
 ```json
 {
   "mcpServers": {
     "nyantify": {
-      "command": "node",
-      "args": ["/path/to/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "mcp-server-nyantify"],
       "env": {
         "BARK_KEY": "your_bark_key_here"
       }

@@ -58,7 +58,7 @@ Shows your current folder name so you know which project the notification belong
 
 ### Prerequisites
 
-- **macOS** (IDE focus detection requires AppleScript)
+- **macOS** / **Windows** / **Linux**
 - **Node.js 18+**
 - **[Bark iOS App](https://github.com/Finb/Bark)** - Free open-source push notification app
 
