@@ -30,20 +30,35 @@ const ideConfig: IDEDetectorConfig = {
 const ideDetector = new IDEDetector(ideConfig);
 const taskTracker = new TaskTracker(MIN_DURATION_SECONDS);
 
-// Define tools
+// Define tools with comprehensive descriptions
 const START_TASK_TOOL: Tool = {
   name: 'start_task',
-  description: 'Start tracking a new task. Call this when beginning a potentially long-running operation.',
+  description: `【MANDATORY】Start tracking a new task. Call this BEFORE every potentially long-running operation (build, test, deploy, etc.).
+
+REQUIRED USAGE:
+- Must call start_task before any operation that could take >10 seconds
+- Must pair with end_task when operation completes
+- Use descriptive task_name so user understands what's happening
+
+EXAMPLE FLOW:
+1. start_task({task_id: "build-001", task_name: "Building project"})
+2. Execute the actual operation
+3. end_task({task_id: "build-001"})
+
+WHY THIS MATTERS:
+- Lets user know a task is in progress
+- Enables intelligent notifications for long tasks when user leaves IDE
+- Prevents user from thinking the operation froze`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Unique identifier for this task',
+        description: 'Unique identifier for this task (use format: operation-type-timestamp)',
       },
       task_name: {
         type: 'string',
-        description: 'Human-readable name/description of the task',
+        description: 'Human-readable description of what this task does',
       },
     },
     required: ['task_id', 'task_name'],
@@ -52,17 +67,28 @@ const START_TASK_TOOL: Tool = {
 
 const END_TASK_TOOL: Tool = {
   name: 'end_task',
-  description: 'End a tracked task. If the task took longer than the threshold and the user is not focused on an IDE, a notification will be sent via Bark.',
+  description: `【MANDATORY】End a tracked task. Call this AFTER the operation completes. Must pair with start_task.
+
+NOTIFICATION LOGIC:
+- If duration >60s AND user not focused on IDE: Sends notification
+- If duration <60s OR user in IDE: No notification (silent completion)
+- Use force_notify=true to override and always notify
+
+EXAMPLE:
+end_task({task_id: "build-001"})  // Uses automatic logic
+end_task({task_id: "build-001", force_notify: true})  // Always notify
+
+NOTE: Notification only sends if task took >60s (configurable) and user left IDE.`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'The task identifier provided to start_task',
+        description: 'The task identifier from start_task (must match exactly)',
       },
       force_notify: {
         type: 'boolean',
-        description: 'Force send a notification even if duration is short',
+        description: 'Force notification regardless of duration (default: false)',
         default: false,
       },
     },
@@ -72,21 +98,40 @@ const END_TASK_TOOL: Tool = {
 
 const NOTIFY_TOOL: Tool = {
   name: 'notify',
-  description: 'Send an immediate notification via Bark. Use this for urgent messages that require user attention or decision-making.',
+  description: `Send immediate notification via Bark to user's iPhone. Use for urgent situations requiring user attention.
+
+【CRITICAL】USER CONFIRMATION REQUIRED:
+Before calling notify, you MUST warn the user. Example:
+"I need to send a notification to your phone. Please confirm..."
+"I'm now sending the notification to your iPhone."
+
+NOTIFY USAGE RULES:
+1. Title MUST be "Nyantify" (fixed)
+2. Body must be clear and specific about what user needs to do
+3. Only use for urgent decisions or important alerts
+4. Never send vague messages like "look at this" or "check this"
+
+GOOD EXAMPLES:
+- "Code review needed: Should I add Redis cache to UserService? Query takes 2.3s"
+- "Tests completed: 3 failures in auth module, need your decision on fix approach"
+
+BAD EXAMPLES:
+- "Done" (too vague)
+- "Check this" (unclear action)`,
   inputSchema: {
     type: 'object',
     properties: {
       title: {
         type: 'string',
-        description: 'Notification title',
+        description: 'MUST be "Nyantify"',
       },
       body: {
         type: 'string',
-        description: 'Notification body content',
+        description: 'Clear, specific message explaining what user needs to do',
       },
       subtitle: {
         type: 'string',
-        description: 'Notification subtitle (optional)',
+        description: 'Additional context (optional)',
       },
       sound: {
         type: 'string',
@@ -99,7 +144,7 @@ const NOTIFY_TOOL: Tool = {
       level: {
         type: 'string',
         enum: ['active', 'timeSensitive', 'passive'],
-        description: 'Notification level (optional)',
+        description: 'timeSensitive recommended for urgent matters (shows during Focus mode)',
       },
       url: {
         type: 'string',
