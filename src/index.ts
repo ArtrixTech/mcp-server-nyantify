@@ -51,37 +51,29 @@ function formatDuration(seconds: number): string {
   return `${mins}min${secs}s`;
 }
 
-// Define tools with language-aware descriptions
+// Define tools with clear action-oriented descriptions
 const START_TASK_TOOL: Tool = {
-  name: 'start_task',
-  description: `[MANDATORY] Call this tool IMMEDIATELY at the start of EVERY conversation.
+  name: 'nyantify_start',
+  description: `STEP 1 OF 2: Call this FIRST before doing anything else.
 
-⚠️ CRITICAL: You MUST call start_task BEFORE doing anything else in this conversation.
-⚠️ CRITICAL: Every conversation MUST start with start_task.
+ACTION: Start tracking this conversation session.
+WHEN: Right now, before your first response.
 
-CURRENT LANGUAGE SETTING: ${LANGUAGE}
-- Use this language for task_name and all communication
-- Supported: en (English), zh (中文), ja (日本語)
+Parameters:
+- task_id: Unique ID (e.g., "chat-2024-01-28-001")
+- task_name: Brief description of this conversation topic
 
-WHY THIS IS REQUIRED:
-- Tracks how long the conversation takes
-- Enables notifications when conversations run long and user leaves IDE
-- Required for the notification system to work properly
-
-EXAMPLE (${LANGUAGE}):
-start_task({task_id: "chat-20240128-001", task_name: "${LANGUAGE === 'zh' ? '帮助解决React组件问题' : LANGUAGE === 'ja' ? 'Reactコンポーネントの問題を支援' : 'Helping with React component'}"})
-
-FAILURE TO CALL: The system won't track this conversation and notifications won't work.`,
+DO THIS NOW, THEN REPLY TO USER.`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Unique ID for this conversation (format: chat-YYYYMMDD-NNN)',
+        description: 'Unique conversation ID',
       },
       task_name: {
         type: 'string',
-        description: `Description of what this conversation is about (in ${LANGUAGE})`,
+        description: 'What this conversation is about',
       },
     },
     required: ['task_id', 'task_name'],
@@ -89,33 +81,27 @@ FAILURE TO CALL: The system won't track this conversation and notifications won'
 };
 
 const END_TASK_TOOL: Tool = {
-  name: 'end_task',
-  description: `[MANDATORY] Call this tool at the END of EVERY conversation before responding.
+  name: 'nyantify_end',
+  description: `STEP 2 OF 2: Call this LAST after completing your response.
 
-⚠️ CRITICAL: You MUST call end_task AFTER completing your response.
-⚠️ CRITICAL: Every conversation MUST end with end_task.
+ACTION: End tracking this conversation session.
+WHEN: After your final reply, before finishing.
 
-CURRENT LANGUAGE SETTING: ${LANGUAGE}
+Parameters:
+- task_id: Same ID from nyantify_start
+- force_notify: (optional) Set true to always notify
 
-WHY THIS IS REQUIRED:
-- Completes the conversation tracking
-- Triggers notification if conversation was long and user left IDE
-- Required to pair with the start_task call
-
-EXAMPLE:
-end_task({task_id: "chat-20240128-001"})
-
-FAILURE TO CALL: The conversation remains unfinished and user won't get notifications.`,
+DO THIS LAST, THEN YOU'RE DONE.`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Same task_id from start_task (MUST match exactly)',
+        description: 'Same ID from nyantify_start',
       },
       force_notify: {
         type: 'boolean',
-        description: 'Force notification regardless of duration (default: false)',
+        description: 'Force notification (default: false)',
         default: false,
       },
     },
@@ -124,7 +110,7 @@ FAILURE TO CALL: The conversation remains unfinished and user won't get notifica
 };
 
 const NOTIFY_TOOL: Tool = {
-  name: 'notify',
+  name: 'nyantify_notify',
   description: `Send immediate notification to user's iPhone via Bark.
 
 CURRENT LANGUAGE SETTING: ${LANGUAGE}
@@ -194,7 +180,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'start_task': {
+      case 'nyantify_start': {
         const { task_id, task_name } = args as { task_id: string; task_name: string };
         taskTracker.startTask(task_id, task_name);
         return {
@@ -207,7 +193,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'end_task': {
+      case 'nyantify_end': {
         const { task_id, force_notify = false } = args as { task_id: string; force_notify?: boolean };
         const result = taskTracker.endTask(task_id, force_notify);
         
@@ -267,7 +253,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'notify': {
+      case 'nyantify_notify': {
         const { title, body, level } = args as {
           title: string;
           body: string;
