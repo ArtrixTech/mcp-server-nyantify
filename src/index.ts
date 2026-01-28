@@ -69,33 +69,41 @@ function formatDuration(seconds: number): string {
 // Define tools with mandatory calling requirements
 const TRACK_TOOL: Tool = {
   name: 'track',
-  description: `REQUIRED: Call this at the START and END of every conversation to track task duration and notify the user when long tasks complete.
+  description: `REQUIRED: Call this at the START and END of processing EVERY user message to track task duration and notify the user when long tasks complete.
 
-**WHEN TO CALL:**
-- action="start": IMMEDIATELY at the beginning of EVERY conversation, before doing anything else
-- action="end": At the END of EVERY conversation, after your final response
+IMPORTANT CLARIFICATION:
+- This tracks EACH user message processing, NOT the entire multi-turn conversation
+- Every time the user sends a message, you must call track(action="start") at the beginning and track(action="end") at the end
 
-**WHY THIS MATTERS:**
-Without tracking, the user won't receive iPhone notifications when AI tasks complete. They may:
+WHEN TO CALL:
+- action="start": IMMEDIATELY when the user sends a message, BEFORE you start processing it
+- action="end": RIGHT AFTER you finish your response to that message
+
+WHY THIS MATTERS:
+Without tracking each message processing, the user won't receive iPhone notifications when AI tasks complete. They may:
 - Waste time staring at the screen waiting
 - Forget to check back and abandon tasks
 - Not know if the task succeeded or failed
 
-**WORKFLOW:**
-1. Call track({action: "start", task_id: "chat-YYYYMMDD-NNN", task_name: "brief description"})
-2. Perform the requested work
-3. Call track({action: "end", task_id: "chat-YYYYMMDD-NNN"})
+WORKFLOW FOR EACH USER MESSAGE:
+1. User sends a message
+2. Call track({action: "start", task_id: "msg-YYYYMMDD-NNN", task_name: "brief description"})
+3. Process the request and generate your response
+4. Call track({action: "end", task_id: "msg-YYYYMMDD-NNN"})
+5. Send your response to the user
 
-**NOTIFICATION LOGIC:**
-- If conversation >60 seconds AND user left IDE → Sends iPhone notification
+NOTIFICATION LOGIC:
+- If message processing >60 seconds AND user left IDE → Sends iPhone notification
 - Otherwise → Silent completion (no notification needed)
 
-**EXAMPLE:**
-Start: track({action: "start", task_id: "chat-2024-01-28-001", task_name: "Refactoring authentication module"})
-... work happens ...
-End: track({action: "end", task_id: "chat-2024-01-28-001"})
+EXAMPLE:
+User: "Refactor the auth module"
+→ track({action: "start", task_id: "msg-2024-01-28-001", task_name: "Refactoring authentication module"})
+→ Process and generate response
+→ track({action: "end", task_id: "msg-2024-01-28-001"})
+→ Send response to user
 
-⚠️ NEVER skip this tool. User relies on notifications for long-running tasks.`,
+⚠️ NEVER skip this tool. Call it for EVERY user message you process. User relies on notifications for long-running tasks.`,
   inputSchema: {
     type: 'object',
     properties: {
