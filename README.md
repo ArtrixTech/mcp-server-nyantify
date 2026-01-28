@@ -57,7 +57,8 @@ Add to your OpenCode or Claude Desktop MCP configuration:
       "type": "local",
       "command": ["node", "/path/to/mcp-server-nyantify/dist/index.js"],
       "environment": {
-        "BARK_KEY": "your_bark_key_here"
+        "BARK_KEY": "your_bark_key_here",
+        "LANGUAGE": "zh"
       },
       "enabled": true
     }
@@ -95,6 +96,7 @@ Restart your AI assistant and the MCP server will automatically:
 | `BARK_BASE_URL` | ❌ No | `https://api.day.app` | Bark server URL |
 | `MIN_DURATION_SECONDS` | ❌ No | `60` | Minimum duration to trigger notification |
 | `IDE_BUNDLE_IDS` | ❌ No | See list below | Custom IDE identifiers to detect |
+| `LANGUAGE` | ❌ No | `en` | Notification language: `en`, `zh`, or `ja` |
 
 ### Default IDE Detection
 

@@ -10,12 +10,14 @@ import {
 import { BarkClient, BarkOptions } from './bark-client.js';
 import { IDEDetector, IDEDetectorConfig } from './ide-detector.js';
 import { TaskTracker } from './task-tracker.js';
+import { I18n, Language } from './i18n.js';
 
 // Configuration from environment variables
 const BARK_KEY = process.env.BARK_KEY || '';
 const BARK_BASE_URL = process.env.BARK_BASE_URL || 'https://api.day.app';
 const MIN_DURATION_SECONDS = parseInt(process.env.MIN_DURATION_SECONDS || '60', 10);
 const IDE_BUNDLE_IDS = process.env.IDE_BUNDLE_IDS?.split(',') || [];
+const LANGUAGE = (process.env.LANGUAGE || 'en') as Language;
 
 if (!BARK_KEY) {
   console.error('Error: BARK_KEY environment variable is required');
@@ -29,6 +31,7 @@ const ideConfig: IDEDetectorConfig = {
 };
 const ideDetector = new IDEDetector(ideConfig);
 const taskTracker = new TaskTracker(MIN_DURATION_SECONDS);
+const i18n = new I18n(LANGUAGE);
 
 // Define tools with simplified descriptions
 const START_TASK_TOOL: Tool = {
@@ -200,10 +203,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           
           if (!isIDEFocused || force_notify) {
             const frontApp = await ideDetector.getFrontmostApplicationName();
+            const formattedDuration = i18n.formatDuration(durationSeconds);
+            
+            // New format: Nyantify|SimpleTitle
+            // Body: task name only
             const barkOptions: BarkOptions = {
-              title: 'Task Completed',
-              body: `"${result.name}" finished after ${durationSeconds}s`,
-              subtitle: `You were using: ${frontApp}`,
+              title: `Nyantify|${i18n.t('taskCompleted')}`,
+              body: result.name,
+              subtitle: `${formattedDuration} · ${frontApp}`,
               group: 'nyantify-tasks',
               level: 'timeSensitive',
             };
@@ -214,18 +221,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               content: [
                 {
                   type: 'text',
-                  text: `Task "${result.name}" completed in ${durationSeconds}s. Notification sent (you were using ${frontApp}).`,
+                  text: `Task "${result.name}" completed in ${formattedDuration}. Notification sent (you were using ${frontApp}).`,
                 },
               ],
             };
           }
         }
 
+        const formattedDuration = i18n.formatDuration(durationSeconds);
         return {
           content: [
             {
               type: 'text',
-              text: `Task "${result.name}" completed in ${durationSeconds}s. No notification needed (you're focused on IDE).`,
+              text: `Task "${result.name}" completed in ${formattedDuration}. No notification needed (you're focused on IDE).`,
             },
           ],
         };
