@@ -32,6 +32,17 @@ const NOTIFICATION_TITLES: Record<string, string> = {
   en: 'Task Completed',
   zh: '任务完成',
   ja: 'タスク完了',
+  de: 'Aufgabe erledigt',
+  fr: 'Tâche terminée',
+  es: 'Tarea completada',
+  ru: 'Задача завершена',
+  ko: '작업 완료',
+  pt: 'Tarefa concluída',
+  it: 'Attività completata',
+  ar: 'تمت المهمة',
+  hi: 'कार्य पूर्ण',
+  vi: 'Đã hoàn thành',
+  th: 'งานเสร็จสิ้น',
 };
 
 // Initialize components
