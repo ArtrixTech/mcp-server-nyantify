@@ -2,70 +2,72 @@
 
 # 🔮 Nyantify
 
-**干活交给AI，干完了Nyantify来叫你。**
+**Let AI do the work. Nyantify will call you when it's done.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Protocol-orange)](https://modelcontextprotocol.io/)
 
-*智能通知中间件，让AI学会礼貌地打扰你*
+*Smart notification middleware that teaches AI assistants to interrupt politely*
+
+[English](README.md) · [中文](docs/README.zh.md) · [日本語](docs/README.ja.md)
 
 </div>
 
 ---
 
-## 🎯 解决什么问题
+## 🎯 What Problem Does It Solve?
 
-当你让AI助手执行长时间任务时（代码重构、测试运行、构建部署），常常遇到这些困境：
+When you ask your AI assistant to perform long-running tasks (code refactoring, test execution, build deployment), you often face these dilemmas:
 
-- ❌ **盯着屏幕干等** - 不知道AI什么时候做完
-- ❌ **切换去做别的** - 忘记回来看结果，任务烂尾
-- ❌ **频繁检查进度** - 打断自己的工作流
-- ❌ **被无关通知轰炸** - 在IDE里专注编码时也收到提醒
+- ❌ **Staring at the screen waiting** - Don't know when AI will finish
+- ❌ **Switching to do something else** - Forget to check back, task abandoned
+- ❌ **Frequently checking progress** - Disrupts your own workflow
+- ❌ **Bombarded with irrelevant notifications** - Get reminders even when focused on coding
 
-**Nyantify = AI干活的"门铃系统"**
+**Nyantify = The "doorbell system" for AI work**
 
-只有在你**真正需要知道**的时候，才会轻轻推你一下。
+Only nudges you when you **truly need to know**.
 
 ---
 
-## ✨ 核心特性
+## ✨ Core Features
 
-### 1. 智能免打扰
+### 1. Smart Do Not Disturb
 ```
-你在IDE里写代码 → 完全静默
-你离开IDE刷手机 →  gentle reminder
+You're coding in IDE → Complete silence
+You leave IDE to check phone → Gentle reminder
 ```
-自动检测当前焦点应用，专注时不打扰。
+Automatically detects current focus application, won't interrupt during deep work.
 
-### 2. 时间感知
+### 2. Time-Aware
 ```
-短任务 (<60秒) → 静默完成
-长任务 (>60秒) → 推送到手机
+Short tasks (<60s) → Silent completion
+Long tasks (>60s) → Push to phone
 ```
-只有值得通知的任务才会推送到你的iPhone。
+Only sends notifications for tasks worth your attention.
 
-### 3. 项目感知
+### 3. Project-Aware
 ```
-通知副标题: mcp-server-nyantify
-一目了然知道是哪个项目的消息
+Notification subtitle: mcp-server-nyantify
+Instantly know which project the message belongs to
 ```
 
-### 4. 多语言支持
-- 🇨🇳 中文
+### 4. Multi-Language Support
+- 🇨🇳 Chinese
 - 🇺🇸 English  
-- 🇯🇵 日本語
+- 🇯🇵 Japanese
 
 ---
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 前置条件
-- macOS (IDE焦点检测依赖AppleScript)
+### Prerequisites
+- macOS (IDE focus detection relies on AppleScript)
 - Node.js 18+
 - [Bark iOS App](https://apps.apple.com/app/bark-custom-notifications/id1403753865)
 
-### 安装
+### Installation
 
 ```bash
 git clone https://github.com/ArtrixTech/mcp-server-nyantify.git
@@ -74,7 +76,7 @@ npm install
 npm run build
 ```
 
-### 配置
+### Configuration
 
 **OpenCode** (`~/.config/opencode/opencode.json`):
 ```json
@@ -85,7 +87,7 @@ npm run build
       "command": ["node", "/path/to/dist/index.js"],
       "environment": {
         "BARK_KEY": "your_bark_key_here",
-        "LANGUAGE": "zh"
+        "LANGUAGE": "en"
       }
     }
   }
@@ -107,27 +109,27 @@ npm run build
 }
 ```
 
-重启AI助手，完成！
+Restart your AI assistant, and you're all set!
 
 ---
 
-## 🎮 工作原理
+## 🎮 How It Works
 
 ```
 ┌─────────────┐    STEP 1    ┌─────────────┐
-│  对话开始    │─────────────▶│ nyantify_start│
+│  Chat Start  │─────────────▶│ nyantify_start│
 └─────────────┘              └─────────────┘
        │                            │
        │                            ▼
        │                    ┌─────────────┐
-       │                    │  开始计时    │
+       │                    │ Start Timer │
        │                    └─────────────┘
        │                            │
-       │         用户工作...        │
+       │      User working...       │
        │                            │
        │                            ▼
        │                    ┌─────────────┐
-       │                    │ 检测IDE焦点 │
+       │                    │ Detect IDE  │
        │                    └─────────────┘
        │                            │
        │    STEP 2    ┌─────────────┐
@@ -136,63 +138,72 @@ npm run build
        │                     │
        ▼                     ▼
 ┌─────────────┐    ┌─────────────┐
-│  对话结束    │    │  时长>60s?  │
+│  Chat End    │    │ Duration>60s?│
 └─────────────┘    └─────────────┘
                           │
               ┌───────────┴───────────┐
               ▼                       ▼
-      用户离开IDE                用户仍在IDE
+      User left IDE              User still in IDE
               │                       │
               ▼                       ▼
     ┌─────────────────┐      ┌─────────────────┐
-    │ 📱 推送通知到手机  │      │ 🔕 静默完成      │
-    │ Nyantify·任务完成 │      │ 不打扰专注工作   │
+    │ 📱 Push to iPhone │      │ 🔕 Silent finish │
+    │ Nyantify·Done     │      │ No interruption │
     └─────────────────┘      └─────────────────┘
 ```
 
-**通知示例**:
+**Notification Example**:
 ```
-标题: Nyantify · 任务完成 · 2min30s
-副标题: mcp-server-nyantify
-内容: 代码重构完成，请确认是否提交
+Title: Nyantify · Task Completed · 2min30s
+Subtitle: mcp-server-nyantify
+Body: Code refactoring complete, please confirm submission
 ```
 
 ---
 
-## 🔧 配置选项
+## 🔧 Configuration Options
 
-| 变量 | 必需 | 默认值 | 说明 |
-|------|------|--------|------|
-| `BARK_KEY` | ✅ | - | Bark推送密钥 |
-| `LANGUAGE` | ❌ | `en` | 通知语言: `zh`/`en`/`ja` |
-| `MIN_DURATION_SECONDS` | ❌ | `60` | 触发通知的最小时长(秒) |
-| `IDE_BUNDLE_IDS` | ❌ | 内置列表 | 自定义IDE检测标识 |
-
----
-
-## 🛠️ 技术栈
-
-- **TypeScript** - 类型安全的Node.js开发
-- **MCP Protocol** - Model Context Protocol标准
-- **AppleScript** - macOS IDE焦点检测
-- **Bark** - iOS APNs推送服务
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `BARK_KEY` | ✅ | - | Bark push key |
+| `LANGUAGE` | ❌ | `en` | Language: `zh`/`en`/`ja` |
+| `MIN_DURATION_SECONDS` | ❌ | `60` | Minimum duration to trigger notification (seconds) |
+| `IDE_BUNDLE_IDS` | ❌ | Built-in list | Custom IDE detection identifiers |
 
 ---
 
-## 🤝 贡献
+## 🛠️ Tech Stack
 
-欢迎PR！请遵循:
-1. Fork仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+- **TypeScript** - Type-safe Node.js development
+- **MCP Protocol** - Model Context Protocol standard
+- **AppleScript** - macOS IDE focus detection
+- **Bark** - iOS APNs push service
 
 ---
 
-## 📄 许可证
+## 📚 Documentation
 
-MIT License - 详见 [LICENSE](./LICENSE)
+- [中文文档](docs/README.zh.md) - 简体中文版本
+- [日本語ドキュメント](docs/README.ja.md) - 日本語版
+- [Architecture](docs/ARCHITECTURE.md) - System design and implementation details
+- [Contributing](docs/CONTRIBUTING.md) - How to contribute to this project
+
+---
+
+## 🤝 Contributing
+
+PRs welcome! Please follow:
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](./LICENSE) for details
 
 ---
 
