@@ -69,41 +69,48 @@ function formatDuration(seconds: number): string {
 // Define tools with mandatory calling requirements
 const TRACK_TOOL: Tool = {
   name: 'track',
-  description: `[MANDATORY] CALL AT START AND END OF EVERY CONVERSATION.
+  description: `REQUIRED: Call this at the START and END of every conversation to track task duration and notify the user when long tasks complete.
 
-USAGE:
-Start: track({action: "start", task_id: "chat-001", task_name: "description"})
-End: track({action: "end", task_id: "chat-001"})
+**WHEN TO CALL:**
+- action="start": IMMEDIATELY at the beginning of EVERY conversation, before doing anything else
+- action="end": At the END of EVERY conversation, after your final response
 
-⚠️ CRITICAL RULES:
-1. MUST call track({action: "start", ...}) BEFORE any other action
-2. MUST call track({action: "end", ...}) AFTER your final response
-3. If you skip this, user won't get notifications when tasks complete
+**WHY THIS MATTERS:**
+Without tracking, the user won't receive iPhone notifications when AI tasks complete. They may:
+- Waste time staring at the screen waiting
+- Forget to check back and abandon tasks
+- Not know if the task succeeded or failed
 
-WHAT IT DOES:
-Tracks conversation duration. Sends iPhone notification if:
-- Conversation lasts >60 seconds AND
-- User has left their IDE
+**WORKFLOW:**
+1. Call track({action: "start", task_id: "chat-YYYYMMDD-NNN", task_name: "brief description"})
+2. Perform the requested work
+3. Call track({action: "end", task_id: "chat-YYYYMMDD-NNN"})
 
-EXAMPLE:
-track({action: "start", task_id: "chat-2024-001", task_name: "Refactoring auth"})
-... do work ...
-track({action: "end", task_id: "chat-2024-001"})`,
+**NOTIFICATION LOGIC:**
+- If conversation >60 seconds AND user left IDE → Sends iPhone notification
+- Otherwise → Silent completion (no notification needed)
+
+**EXAMPLE:**
+Start: track({action: "start", task_id: "chat-2024-01-28-001", task_name: "Refactoring authentication module"})
+... work happens ...
+End: track({action: "end", task_id: "chat-2024-01-28-001"})
+
+⚠️ NEVER skip this tool. User relies on notifications for long-running tasks.`,
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
         enum: ['start', 'end'],
-        description: '"start" at conversation begin, "end" at conversation finish',
+        description: 'Use "start" at conversation begin, "end" at conversation finish',
       },
       task_id: {
         type: 'string',
-        description: 'Unique conversation ID (format: chat-YYYYMMDD-NNN)',
+        description: 'Unique conversation ID (use format: chat-YYYYMMDD-NNN)',
       },
       task_name: {
         type: 'string',
-        description: 'Brief description of this conversation (required for start)',
+        description: 'Brief description of what this conversation is about (required when action=start)',
       },
     },
     required: ['action', 'task_id'],
