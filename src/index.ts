@@ -237,7 +237,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             const titleText = NOTIFICATION_TITLES[LANGUAGE] || NOTIFICATION_TITLES['en'];
             
             const barkOptions: BarkOptions = {
-              title: `Nyantify|${titleText}`,
+              title: `Nyantify | ${titleText}`,
               body: result.name,
               subtitle: `${formattedDuration} · ${frontApp}`,
               group: 'nyantify-tasks',
