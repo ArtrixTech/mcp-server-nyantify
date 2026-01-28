@@ -10,6 +10,7 @@ import {
 import { BarkClient, BarkOptions } from './bark-client.js';
 import { IDEDetector, IDEDetectorConfig } from './ide-detector.js';
 import { TaskTracker } from './task-tracker.js';
+import path from 'path';
 
 // Configuration from environment variables
 const BARK_KEY = process.env.BARK_KEY || '';
@@ -17,6 +18,9 @@ const BARK_BASE_URL = process.env.BARK_BASE_URL || 'https://api.day.app';
 const MIN_DURATION_SECONDS = parseInt(process.env.MIN_DURATION_SECONDS || '60', 10);
 const IDE_BUNDLE_IDS = process.env.IDE_BUNDLE_IDS?.split(',') || [];
 const LANGUAGE = process.env.LANGUAGE || 'en';
+
+// Get current directory name as project name
+const PROJECT_NAME = path.basename(process.cwd());
 
 if (!BARK_KEY) {
   console.error('Error: BARK_KEY environment variable is required');
@@ -224,8 +228,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             
             const barkOptions: BarkOptions = {
               title: `Nyantify · ${titleText} · ${formattedDuration}`,
-              body: 'Task completed',
-              subtitle: result.name,
+              body: result.name,
+              subtitle: PROJECT_NAME,
               group: 'nyantify',
               level: 'timeSensitive',
             };
