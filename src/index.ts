@@ -10,19 +10,25 @@ import {
 import { BarkClient, BarkOptions } from './bark-client.js';
 import { IDEDetector, IDEDetectorConfig } from './ide-detector.js';
 import { TaskTracker } from './task-tracker.js';
-import { I18n, Language } from './i18n.js';
 
 // Configuration from environment variables
 const BARK_KEY = process.env.BARK_KEY || '';
 const BARK_BASE_URL = process.env.BARK_BASE_URL || 'https://api.day.app';
 const MIN_DURATION_SECONDS = parseInt(process.env.MIN_DURATION_SECONDS || '60', 10);
 const IDE_BUNDLE_IDS = process.env.IDE_BUNDLE_IDS?.split(',') || [];
-const LANGUAGE = (process.env.LANGUAGE || 'en') as Language;
+const LANGUAGE = process.env.LANGUAGE || 'en';
 
 if (!BARK_KEY) {
   console.error('Error: BARK_KEY environment variable is required');
   process.exit(1);
 }
+
+// Hardcoded i18n titles for notifications
+const NOTIFICATION_TITLES: Record<string, string> = {
+  en: 'Task Completed',
+  zh: '任务完成',
+  ja: 'タスク完了',
+};
 
 // Initialize components
 const barkClient = new BarkClient(BARK_KEY, BARK_BASE_URL);
@@ -31,9 +37,21 @@ const ideConfig: IDEDetectorConfig = {
 };
 const ideDetector = new IDEDetector(ideConfig);
 const taskTracker = new TaskTracker(MIN_DURATION_SECONDS);
-const i18n = new I18n(LANGUAGE);
 
-// Define tools with mandatory descriptions
+// Helper to format duration in simple format
+function formatDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (secs === 0) {
+    return `${mins}min`;
+  }
+  return `${mins}min${secs}s`;
+}
+
+// Define tools with language-aware descriptions
 const START_TASK_TOOL: Tool = {
   name: 'start_task',
   description: `[MANDATORY] Call this tool IMMEDIATELY at the start of EVERY conversation.
@@ -41,14 +59,17 @@ const START_TASK_TOOL: Tool = {
 ⚠️ CRITICAL: You MUST call start_task BEFORE doing anything else in this conversation.
 ⚠️ CRITICAL: Every conversation MUST start with start_task.
 
+CURRENT LANGUAGE SETTING: ${LANGUAGE}
+- Use this language for task_name and all communication
+- Supported: en (English), zh (中文), ja (日本語)
+
 WHY THIS IS REQUIRED:
 - Tracks how long the conversation takes
 - Enables notifications when conversations run long and user leaves IDE
 - Required for the notification system to work properly
 
-EXAMPLE - First thing you do:
-1. start_task({task_id: "chat-20240128-001", task_name: "Helping with React component"})
-2. Then proceed with the conversation
+EXAMPLE (${LANGUAGE}):
+start_task({task_id: "chat-20240128-001", task_name: "${LANGUAGE === 'zh' ? '帮助解决React组件问题' : LANGUAGE === 'ja' ? 'Reactコンポーネントの問題を支援' : 'Helping with React component'}"})
 
 FAILURE TO CALL: The system won't track this conversation and notifications won't work.`,
   inputSchema: {
@@ -60,7 +81,7 @@ FAILURE TO CALL: The system won't track this conversation and notifications won'
       },
       task_name: {
         type: 'string',
-        description: 'Brief description of what this conversation is about',
+        description: `Description of what this conversation is about (in ${LANGUAGE})`,
       },
     },
     required: ['task_id', 'task_name'],
@@ -74,14 +95,15 @@ const END_TASK_TOOL: Tool = {
 ⚠️ CRITICAL: You MUST call end_task AFTER completing your response.
 ⚠️ CRITICAL: Every conversation MUST end with end_task.
 
+CURRENT LANGUAGE SETTING: ${LANGUAGE}
+
 WHY THIS IS REQUIRED:
 - Completes the conversation tracking
 - Triggers notification if conversation was long and user left IDE
 - Required to pair with the start_task call
 
-EXAMPLE - Last thing you do:
-1. Complete your response to the user
-2. end_task({task_id: "chat-20240128-001"})
+EXAMPLE:
+end_task({task_id: "chat-20240128-001"})
 
 FAILURE TO CALL: The conversation remains unfinished and user won't get notifications.`,
   inputSchema: {
@@ -105,22 +127,25 @@ const NOTIFY_TOOL: Tool = {
   name: 'notify',
   description: `Send immediate notification to user's iPhone via Bark.
 
+CURRENT LANGUAGE SETTING: ${LANGUAGE}
+- Use this language for the notification body
+
 WHEN TO USE:
 - Urgent situations requiring immediate user attention
 - When user needs to make a decision
 - Important alerts that can't wait
 
 【IMPORTANT】Before calling notify:
-1. Tell user: "I need to send a notification to your phone"
+1. Tell user: "${LANGUAGE === 'zh' ? '我需要发送通知到您的手机' : LANGUAGE === 'ja' ? 'お知らせを送信します' : 'I need to send a notification to your phone'}"
 2. Explain what the notification is about
 3. Then call notify
 
 RULES:
 - Title MUST be "Nyantify"
-- Body must be clear and specific
+- Body must be clear and specific (in ${LANGUAGE})
 - Never use vague messages
 
-GOOD: "Code review needed: Add Redis cache to UserService? Query takes 2.3s"
+GOOD (${LANGUAGE}): "${LANGUAGE === 'zh' ? '代码审查：是否在UserService中添加Redis缓存？查询耗时2.3秒' : LANGUAGE === 'ja' ? 'コードレビュー：UserServiceにRedisキャッシュを追加しますか？クエリ実行時間2.3秒' : 'Code review: Add Redis cache to UserService? Query takes 2.3s'}"
 BAD: "Check this" or "Done"`,
   inputSchema: {
     type: 'object',
@@ -131,7 +156,7 @@ BAD: "Check this" or "Done"`,
       },
       body: {
         type: 'string',
-        description: 'Clear message explaining what user needs to know or do',
+        description: `Clear message in ${LANGUAGE} explaining what user needs to know`,
       },
       level: {
         type: 'string',
@@ -206,12 +231,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           
           if (!isIDEFocused || force_notify) {
             const frontApp = await ideDetector.getFrontmostApplicationName();
-            const formattedDuration = i18n.formatDuration(durationSeconds);
+            const formattedDuration = formatDuration(durationSeconds);
             
-            // New format: Nyantify|SimpleTitle
-            // Body: task name only
+            // Use hardcoded title based on language setting
+            const titleText = NOTIFICATION_TITLES[LANGUAGE] || NOTIFICATION_TITLES['en'];
+            
             const barkOptions: BarkOptions = {
-              title: `Nyantify|${i18n.t('taskCompleted')}`,
+              title: `Nyantify|${titleText}`,
               body: result.name,
               subtitle: `${formattedDuration} · ${frontApp}`,
               group: 'nyantify-tasks',
@@ -231,7 +257,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        const formattedDuration = i18n.formatDuration(durationSeconds);
+        const formattedDuration = formatDuration(durationSeconds);
         return {
           content: [
             {
@@ -243,24 +269,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'notify': {
-        const { title, body, subtitle, sound, group, level, url } = args as {
+        const { title, body, level } = args as {
           title: string;
           body: string;
-          subtitle?: string;
-          sound?: string;
-          group?: string;
           level?: 'active' | 'timeSensitive' | 'passive';
-          url?: string;
         };
 
         const barkOptions: BarkOptions = {
           title,
           body,
-          subtitle,
-          sound,
-          group: group || 'nyantify-notifications',
+          group: 'nyantify-notifications',
           level: level || 'timeSensitive',
-          url,
         };
 
         await barkClient.send(barkOptions);
