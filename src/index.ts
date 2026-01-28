@@ -224,7 +224,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             
             const barkOptions: BarkOptions = {
               title: `Nyantify · ${titleText} · ${formattedDuration}`,
-              body: result.name,
+              body: 'Task completed',
+              subtitle: result.name,
               group: 'nyantify',
               level: 'timeSensitive',
             };
