@@ -33,33 +33,34 @@ const ideDetector = new IDEDetector(ideConfig);
 const taskTracker = new TaskTracker(MIN_DURATION_SECONDS);
 const i18n = new I18n(LANGUAGE);
 
-// Define tools with simplified descriptions
+// Define tools with mandatory descriptions
 const START_TASK_TOOL: Tool = {
   name: 'start_task',
-  description: `Start tracking this conversation session. Call this ONCE at the beginning of every chat.
+  description: `[MANDATORY] Call this tool IMMEDIATELY at the start of EVERY conversation.
 
-SIMPLE USAGE:
-- Call start_task when the conversation starts
-- Call end_task when the conversation ends
-- That's it!
+⚠️ CRITICAL: You MUST call start_task BEFORE doing anything else in this conversation.
+⚠️ CRITICAL: Every conversation MUST start with start_task.
 
-The system will automatically:
-- Track how long the conversation takes
-- Send a notification if it exceeds 60 seconds and user left IDE
-- Stay silent if user is still focused on IDE
+WHY THIS IS REQUIRED:
+- Tracks how long the conversation takes
+- Enables notifications when conversations run long and user leaves IDE
+- Required for the notification system to work properly
 
-EXAMPLE:
-start_task({task_id: "chat-2024-001", task_name: "Code review session"})`,
+EXAMPLE - First thing you do:
+1. start_task({task_id: "chat-20240128-001", task_name: "Helping with React component"})
+2. Then proceed with the conversation
+
+FAILURE TO CALL: The system won't track this conversation and notifications won't work.`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'Unique identifier for this conversation (e.g., "chat-timestamp")',
+        description: 'Unique ID for this conversation (format: chat-YYYYMMDD-NNN)',
       },
       task_name: {
         type: 'string',
-        description: 'Description of what this conversation is about',
+        description: 'Brief description of what this conversation is about',
       },
     },
     required: ['task_id', 'task_name'],
@@ -68,25 +69,27 @@ start_task({task_id: "chat-2024-001", task_name: "Code review session"})`,
 
 const END_TASK_TOOL: Tool = {
   name: 'end_task',
-  description: `End this conversation session. Call this ONCE at the end of every chat.
+  description: `[MANDATORY] Call this tool at the END of EVERY conversation before responding.
 
-SIMPLE USAGE:
-- Call end_task when you're done with the conversation
-- Must use the same task_id from start_task
-- That's it!
+⚠️ CRITICAL: You MUST call end_task AFTER completing your response.
+⚠️ CRITICAL: Every conversation MUST end with end_task.
 
-NOTIFICATION LOGIC (automatic):
-- If conversation >60s AND user left IDE → sends notification
-- Otherwise → silent completion
+WHY THIS IS REQUIRED:
+- Completes the conversation tracking
+- Triggers notification if conversation was long and user left IDE
+- Required to pair with the start_task call
 
-EXAMPLE:
-end_task({task_id: "chat-2024-001"})`,
+EXAMPLE - Last thing you do:
+1. Complete your response to the user
+2. end_task({task_id: "chat-20240128-001"})
+
+FAILURE TO CALL: The conversation remains unfinished and user won't get notifications.`,
   inputSchema: {
     type: 'object',
     properties: {
       task_id: {
         type: 'string',
-        description: 'The task identifier from start_task (must match exactly)',
+        description: 'Same task_id from start_task (MUST match exactly)',
       },
       force_notify: {
         type: 'boolean',
