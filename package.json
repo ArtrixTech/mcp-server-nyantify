@@ -1,17 +1,42 @@
 {
   "name": "mcp-server-nyantify",
   "version": "1.0.0",
-  "description": "MCP server for intelligent notifications via Bark",
+  "description": "Smart iOS notifications for AI coding agents via Bark",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "echo 'See TEST_GUIDE.md for manual testing instructions'"
   },
-  "keywords": ["mcp", "bark", "notification"],
-  "author": "",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "bark",
+    "notification",
+    "ios",
+    "push-notification",
+    "ai-agent",
+    "claude",
+    "opencode"
+  ],
+  "author": "Artrix",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArtrixTech/mcp-server-nyantify.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ArtrixTech/mcp-server-nyantify/issues"
+  },
+  "homepage": "https://github.com/ArtrixTech/mcp-server-nyantify#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "darwin"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
